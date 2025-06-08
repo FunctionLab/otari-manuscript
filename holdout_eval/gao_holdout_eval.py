@@ -1,21 +1,17 @@
 from collections import defaultdict
 import gzip
-import os
 
 import torch
 import pickle as rick
-from torch.utils.data import random_split, DataLoader
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.loggers import WandbLogger
-from scipy.stats import pearsonr, spearmanr
+from pytorch_lightning import seed_everything
+from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-import pandas as pd
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, average_precision_score, accuracy_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 from models.otari import IsoAbundanceModel
-from utils.utils import load_config, binarize, compute_tissue_cutoffs
+from utils.utils import binarize, compute_tissue_cutoffs
 from data import IsoAbundanceDataset
 
 
