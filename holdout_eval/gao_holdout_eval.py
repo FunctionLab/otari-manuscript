@@ -92,7 +92,7 @@ def plot_ESPRESSO(metrics, output):
         )
     tissue_labels = [x.replace('_', ' ').capitalize() for x in metrics.keys()]
     axs.set_yticklabels(tissue_labels, fontsize=13)
-    axs.set_xlabel('AUROC', fontsize=16)
+    axs.set_xlabel(f'{output}', fontsize=16)
     axs.tick_params(axis='x', labelsize=13.5)
     axs.spines['top'].set_visible(False)
     axs.spines['right'].set_visible(False)
