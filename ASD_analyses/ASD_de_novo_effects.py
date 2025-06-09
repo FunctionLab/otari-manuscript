@@ -49,29 +49,29 @@ def analyze_ASD_variants(ssc=False, col='max_effect'):
     probands[TISSUE_NAMES] = probands[TISSUE_NAMES].abs()
     siblings[TISSUE_NAMES] = siblings[TISSUE_NAMES].abs()
 
-    # Compute mean and standard error for pathogenic and benign
-    pathogenic_mean = probands[col].mean()
-    pathogenic_ste = probands[col].sem() 
-    benign_mean = siblings[col].mean()
-    benign_ste = siblings[col].sem() 
+    # Compute mean and standard error
+    proband_mean = probands[col].mean()
+    proband_ste = probands[col].sem() 
+    sibling_mean = siblings[col].mean()
+    sibling_ste = siblings[col].sem() 
     
     # normalize to sibling mean
-    pathogenic_mean = pathogenic_mean - benign_mean
-    benign_mean = benign_mean - benign_mean
+    proband_mean = proband_mean - sibling_mean
+    sibling_mean = sibling_mean - sibling_mean
     
     pval = ttest_ind(probands[col], siblings[col], alternative='greater').pvalue
 
     fig, ax = plt.subplots(figsize=(3.9, 4.2))
     x_positions = [1, 2]
-    ax.errorbar(x=x_positions[0], y=benign_mean, yerr=benign_ste, capsize=3, color='black', zorder=1)
-    ax.scatter(x=x_positions[0], y=benign_mean, s=170, color='gray', zorder=2)
-    ax.errorbar(x=x_positions[1], y=pathogenic_mean, yerr=pathogenic_ste, capsize=3, color='black', zorder=1)
-    ax.scatter(x=x_positions[1], y=pathogenic_mean, s=170, color='mediumvioletred', zorder=2)
+    ax.errorbar(x=x_positions[0], y=sibling_mean, yerr=sibling_ste, capsize=3, color='black', zorder=1)
+    ax.scatter(x=x_positions[0], y=sibling_mean, s=170, color='gray', zorder=2)
+    ax.errorbar(x=x_positions[1], y=proband_mean, yerr=proband_ste, capsize=3, color='black', zorder=1)
+    ax.scatter(x=x_positions[1], y=proband_mean, s=170, color='mediumvioletred', zorder=2)
     ax.set_xticks(x_positions)
     ax.set_xticklabels(['Siblings', 'Probands'], fontsize=15.5)
     ax.set_xlabel('')
     ax.set_ylabel('abs(effect size)', fontsize=14.5)
-    y_pos = pathogenic_mean+pathogenic_ste
+    y_pos = proband_mean + proband_ste
     ax.text(1.5, y_pos+0.001, f'p={pval:.2e}', fontsize=13, ha='center')
     ax.set_xlim(0.5, 2.5)
     plt.yticks(fontsize=12)
