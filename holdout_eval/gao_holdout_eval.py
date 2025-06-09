@@ -282,7 +282,7 @@ def isoform_vs_global_AUROC(model, dataset):
                 continue
             pred = model(x)
             pred = pred.squeeze(0).cpu().detach().numpy()
-            y = x.y.cpu().detach().numpy()
+            y = x.y.squeeze(0).cpu().detach().numpy()
 
             if x.transcript_id not in transcript2gene:
                 continue
@@ -290,6 +290,7 @@ def isoform_vs_global_AUROC(model, dataset):
 
             for i, tissue in enumerate(TISSUE_NAMES):
                 all_predicted[tissue].append(pred[i])
+
                 y_tissue = binarize(y[i], tissue, cutoffs)
                 if np.isnan(y_tissue):
                     continue # ignore transcripts not high or low expressed in tissue
@@ -297,14 +298,15 @@ def isoform_vs_global_AUROC(model, dataset):
                 x_tissue = pred[i]
                 true_observed[tissue].append(y_tissue)
                 predicted[tissue].append(x_tissue)
+
                 tissue_to_gene_to_abundance[tissue][gene].append(y_tissue)
                 tissue_to_gene_to_predicted[tissue][gene].append(x_tissue)
     
     # compute max abundance per gene in each tissue
     tissue_to_gene_to_max_abundance = defaultdict(lambda: defaultdict(float))
     for t in TISSUE_NAMES:
-        for gene in tissue_to_gene_to_abundance[t].keys():
-            max_abundance = max(tissue_to_gene_to_abundance[t][gene])
+        for gene in tissue_to_gene_to_predicted[t].keys():
+            max_abundance = max(tissue_to_gene_to_predicted[t][gene])
             tissue_to_gene_to_max_abundance[t][gene] = max_abundance
 
     tissue_to_auroc_isoform = {}
@@ -318,13 +320,12 @@ def isoform_vs_global_AUROC(model, dataset):
         # compute gene-level AUROC
         gene_predicted = []
         gene_true = []
-        for gene in tissue_to_gene_to_predicted[tissue].keys():
-            gene_predicted.extend(tissue_to_gene_to_predicted[tissue][gene])
-            gene_true.extend([tissue_to_gene_to_max_abundance[tissue][gene]] * len(tissue_to_gene_to_predicted[tissue][gene]))
-        sorted_gene_predicted = sorted(gene_predicted)
-        gene_predicted_ranked = [sorted_gene_predicted.index(x) / len(sorted_gene_predicted) for x in gene_predicted]
+        for gene in tissue_to_gene_to_abundance[tissue].keys():
+            gene_true.extend(tissue_to_gene_to_abundance[tissue][gene])
+            gene_predicted.extend([tissue_to_gene_to_max_abundance[tissue][gene]] * len(tissue_to_gene_to_abundance[tissue][gene]))
+        gene_predicted_ranked = [sorted_predicted.index(x) / len(sorted_predicted) for x in gene_predicted]
         tissue_to_auroc_gene[tissue] = roc_auc_score(gene_true, gene_predicted_ranked)
-        
+    
     # plot
     max_pred = []
     pred = []

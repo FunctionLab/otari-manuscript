@@ -4,6 +4,15 @@ import yaml
 import numpy as np
 import pandas as pd
 
+from genome_utils import GTFReader
+
+
+def read_gtf():
+    gtf_path = 'resources/gencode.v47.basic.annotation.gtf'
+    genome_path = 'resources/hg38.fa'
+    gtf_reader = GTFReader(gtf_path, genome_path = genome_path, add_splice_site = True)
+    return gtf_reader
+
 
 def load_config(yaml_path):
     with open(yaml_path, 'r') as file:
