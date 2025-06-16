@@ -227,7 +227,7 @@ def sQTL_effects_analysis():
     ax.tick_params(axis='y', labelsize=14)
     for i, p in enumerate(p_vals):
         if p < 0.05:
-            ax.text(i, 0.755, f'q={p:.2e}', fontsize=12, ha='center')
+            ax.text(i, 1.1, f'q={p:.2e}', fontsize=12, ha='center')
     markers = [plt.Line2D([0,0],[0,0],color=color, marker='o', linestyle='', markersize=11.5) for color in colors]
     ax.legend(markers, labels, loc='upper center', fontsize=13, ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.18))
     ax.spines['top'].set_visible(False)

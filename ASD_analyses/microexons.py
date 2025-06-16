@@ -172,7 +172,7 @@ def analyze_microexons():
     }
     star_labels = get_star_labels(pvals, custom_thresholds)
     pairs = [(0, 1), (0, 2), (2, 3)]
-    y_positions = [1.24, 1.32, 1.38]
+    y_positions = [1.76, 1.87, 1.93]
     draw_lines_and_stars(ax, pairs, y_positions, star_labels)
     plt.tight_layout()
     plt.savefig('figures/microexons_predicted_effects.png', dpi=600, bbox_inches='tight')

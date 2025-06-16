@@ -22,7 +22,7 @@ def analyze_HGMD_variants(col='max_effect'):
     pathogenic_all = pd.read_csv(pathogenic_all, sep='\t').drop_duplicates(keep='first')
     benign_all = pd.read_csv(benign_all, sep='\t').drop_duplicates(keep='first')
 
-    # scale scores to CLINVAR benign variants
+    # scale scores to background distribution
     background_path = 'resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
@@ -105,7 +105,7 @@ def analyze_HGMD_variants(col='max_effect'):
     corrected_pvals = corrected_pvals[:3]
     star_labels = get_star_labels(corrected_pvals, custom_thresholds)
     pairs = [(0, 2), (0, 1), (1, 2)] 
-    offsets = [0.06, 0.015, 0.02]
+    offsets = [0.14, 0.04, 0.027]
     y_positions = [pathogenic_mean-benign_principal_mean + pathogenic_ste + offsets[0], 
                     pathogenic_principal_mean-benign_principal_mean + pathogenic_principal_ste + offsets[1], 
                     pathogenic_mean-benign_principal_mean + pathogenic_ste + offsets[2]] 
