@@ -13,8 +13,8 @@ def get_feature_names():
     Construct a vector of embedding feature names.
     """
     convsplice_cols = ['5ss_splicing', '3ss_splicing']
-    seqweaver_cols = pd.read_csv('resources/seqweaver.colnames', header=None)[0].tolist()
-    sei_cols = pd.read_csv('resources/histone_features.csv', index_col=0)['Cell Line'].tolist()
+    seqweaver_cols = pd.read_csv('../resources/model_weights/seqweaver.colnames', header=None)[0].tolist()
+    sei_cols = pd.read_csv('../resources/model_weights/histone_features.csv', index_col=0)['Cell Line'].tolist()
 
     ss_embedding = convsplice_cols + 8*seqweaver_cols + sei_cols
     total_embedding = 2*ss_embedding
@@ -27,8 +27,8 @@ def get_feature_to_category():
     Map features to regulatory category (sei, seqweaver, convsplice).
     """
     convsplice_cols = ['5ss_splicing', '3ss_splicing']
-    seqweaver_cols = pd.read_csv('resources/seqweaver.colnames', header=None)[0].tolist()
-    sei_cols = pd.read_csv('resources/histone_features.csv', index_col=0)['Cell Line'].tolist()
+    seqweaver_cols = pd.read_csv('../resources/model_weights/seqweaver.colnames', header=None)[0].tolist()
+    sei_cols = pd.read_csv('../resources/model_weights/histone_features.csv', index_col=0)['Cell Line'].tolist()
 
     ss_embedding = convsplice_cols + 8*seqweaver_cols + sei_cols
     total_embedding = 2*ss_embedding
@@ -84,20 +84,20 @@ def get_category_counts(dataset, feature_names, feature_name_to_category, tissue
 
 def QTL_burden_heatmap():
     # eQTL paths
-    brain_cortex = 'resources/GTEx_fine_mapped_eQTLs/Brain_Cortex'
-    liver = 'resources/GTEx_fine_mapped_eQTLs/Liver'
-    whole_blood = 'resources/GTEx_fine_mapped_eQTLs/Whole_Blood'
-    lung = 'resources/GTEx_fine_mapped_eQTLs/Lung'
-    heart = 'resources/GTEx_fine_mapped_eQTLs/Heart'
-    colon = 'resources/GTEx_fine_mapped_eQTLs/Colon'
+    brain_cortex = '../resources/GTEx_fine_mapped_eQTLs/Brain_Cortex'
+    liver = '../resources/GTEx_fine_mapped_eQTLs/Liver'
+    whole_blood = '../resources/GTEx_fine_mapped_eQTLs/Whole_Blood'
+    lung = '../resources/GTEx_fine_mapped_eQTLs/Lung'
+    heart = '../resources/GTEx_fine_mapped_eQTLs/Heart'
+    colon = '../resources/GTEx_fine_mapped_eQTLs/Colon'
 
     # sQTL paths
-    brain_cortex_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Brain_Cortex'
-    liver_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Liver'
-    whole_blood_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Whole_Blood'
-    lung_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Lung'
-    heart_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Heart'
-    colon_sqtl = 'resources/GTEx_fine_mapped_sQTLs/Colon'
+    brain_cortex_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Brain_Cortex'
+    liver_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Liver'
+    whole_blood_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Whole_Blood'
+    lung_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Lung'
+    heart_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Heart'
+    colon_sqtl = '../resources/GTEx_fine_mapped_sQTLs/Colon'
 
     # get feature names
     feature_names = get_feature_names()
@@ -194,6 +194,9 @@ def QTL_burden_heatmap():
     ax.tick_params(axis='x', labelsize=13)
     ax.tick_params(axis='y', labelsize=12)
     ax.set_xticklabels(ax.get_xticklabels(), fontsize=13)
+
+    os.makedirs('figures', exist_ok=True)
+    
     plt.tight_layout()
     fig.savefig('figures/Otari_estimated_QTL_burden_heatmap.png', dpi=600, bbox_inches='tight')
     plt.close(fig)
