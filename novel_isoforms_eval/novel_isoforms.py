@@ -1,3 +1,4 @@
+import os
 import gzip
 from collections import defaultdict
 
@@ -182,6 +183,7 @@ def plot(tissue_to_pearsonr):
     axs.spines['bottom'].set_linewidth(2)
     axs.spines['left'].set_linewidth(2)
     plt.suptitle('Evaluation on novel isoforms\n(ESPRESSO)', fontsize=16, weight='bold', y=0.94)
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig('figures/novel_isoforms_low_abundance_canonical_pearson_violinplot.png', dpi=600)
     plt.close()
