@@ -21,8 +21,8 @@ def get_feature_names():
     Construct a vector of embedding feature names.
     """
     convsplice_cols = ['5ss_splicing', '3ss_splicing']
-    seqweaver_cols = pd.read_csv('resources/seqweaver.colnames', header=None)[0].tolist()
-    sei_cols = pd.read_csv('resources/histone_features.csv', index_col=0)['Cell Line'].tolist()
+    seqweaver_cols = pd.read_csv('../resources/seqweaver.colnames', header=None)[0].tolist()
+    sei_cols = pd.read_csv('../resources/histone_features.csv', index_col=0)['Cell Line'].tolist()
 
     ss_embedding = convsplice_cols + 8*seqweaver_cols + sei_cols
     total_embedding = 2*ss_embedding
@@ -35,11 +35,11 @@ def PTEN_clinical_variant_analysis(transcript_subset=False):
     pten_variant = '10_87925512_G_C_hg38'
     pten_variant_name = 'chr10/87925512/G/C'
     file_name = 'PTEN_variant'
-    clinvar_df = pd.read_csv(f'resources/variant_effects/{file_name}/interpretability_analysis.tsv', sep='\t')
-    vep = pd.read_csv(f'resources/variant_effects/{file_name}/variant_effects_comprehensive.tsv', sep='\t')
-    with open(f'/mnt/home/alitman/ceph/isoModel_w_gnn/variant_effects/{file_name}/variant_to_most_affected_node_embedding.pkl', 'rb') as f:
+    clinvar_df = pd.read_csv(f'../resources/variant_effects/{file_name}/interpretability_analysis.tsv', sep='\t')
+    vep = pd.read_csv(f'../resources/variant_effects/{file_name}/variant_effects_comprehensive.tsv', sep='\t')
+    with open(f'../resources/variant_effects/{file_name}/variant_to_most_affected_node_embedding.pkl', 'rb') as f:
         variant_to_node_embed = rick.load(f)
-    with open(f'/mnt/home/alitman/ceph/isoModel_w_gnn/variant_effects/{file_name}/node_to_l2.pkl', 'rb') as f:
+    with open(f'../resources/variant_effects/{file_name}/node_to_l2.pkl', 'rb') as f:
         tid_node_to_l2 = rick.load(f)
     
     # scale scores to background distribution
