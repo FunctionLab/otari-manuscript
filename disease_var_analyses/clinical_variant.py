@@ -21,8 +21,8 @@ def get_feature_names():
     Construct a vector of embedding feature names.
     """
     convsplice_cols = ['5ss_splicing', '3ss_splicing']
-    seqweaver_cols = pd.read_csv('../resources/seqweaver.colnames', header=None)[0].tolist()
-    sei_cols = pd.read_csv('../resources/histone_features.csv', index_col=0)['Cell Line'].tolist()
+    seqweaver_cols = pd.read_csv('../resources/model_weights/seqweaver.colnames', header=None)[0].tolist()
+    sei_cols = pd.read_csv('../resources/model_weights/histone_features.csv', index_col=0)['Cell Line'].tolist()
 
     ss_embedding = convsplice_cols + 8*seqweaver_cols + sei_cols
     total_embedding = 2*ss_embedding
