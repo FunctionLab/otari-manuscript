@@ -12,7 +12,7 @@ TISSUE_NAMES = ['Brain', 'Caudate_Nucleus', 'Cerebellum', 'Cerebral_Cortex',
 
 
 def eqtl_direction_analysis():
-    output_path = 'resources/GTEx_fine_mapped_eQTLs/'
+    output_path = '../resources/GTEx_fine_mapped_eQTLs/'
 
     tissues = ['Kidney', 'Brain_Cortex', 'Whole_Blood', 'Lung', 'Heart', 'Colon', 
                'Brain_Hippocampus', 'Pancreas', 'Brain_Cerebellum', 'Liver'] # GTEx v10 tissues
@@ -20,7 +20,7 @@ def eqtl_direction_analysis():
                        'Hippocampus', 'pancreas', 'Cerebellum', 'liver'] # matched tissue models
 
     # scale to background distribution
-    background_path = 'resources/background_distribution.tsv'
+    background_path = '../resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
     std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -130,6 +130,9 @@ def eqtl_direction_analysis():
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
+
+    os.makedirs('figures', exist_ok=True)
+  
     plt.tight_layout()
     plt.savefig('figures/eQTL_direction_prediction_accuracy_across_tissues.png', dpi=600, bbox_inches='tight')
     plt.close()
