@@ -23,7 +23,7 @@ def analyze_HGMD_variants(col='max_effect'):
     benign_all = pd.read_csv(benign_all, sep='\t').drop_duplicates(keep='first')
 
     # scale scores to background distribution
-    background_path = 'resources/background_distribution.tsv'
+    background_path = '../resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
     std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -39,7 +39,7 @@ def analyze_HGMD_variants(col='max_effect'):
     benign_all[TISSUE_NAMES] = benign_all[TISSUE_NAMES].abs()
 
     # get principal transcript for each variant
-    with open('/mnt/home/jfang/isoModel_w_gnn/gene2_principal_transcript.pkl', 'rb') as f:
+    with open('../resources/gene2_principal_transcript.pkl', 'rb') as f:
         gene2principal = rick.load(f)
     all_principal_transcripts = []
     for k, v in gene2principal.items():
@@ -70,29 +70,28 @@ def analyze_HGMD_variants(col='max_effect'):
     # compute mean and standard error for top-ranked transcripts
     pathogenic_mean = pathogenic_all[col].mean()
     pathogenic_ste = pathogenic_all[col].sem() 
-    # benign_mean = benign_all[col].mean()
-    # benign_ste = benign_all[col].sem() 
+    benign_mean = benign_all[col].mean()
+    benign_ste = benign_all[col].sem() 
 
     fig, ax = plt.subplots(figsize=(5.5, 4))
     x_positions = [0,1,2]
-    ax.errorbar(x=x_positions[0], y=benign_principal_mean-benign_principal_mean, yerr=benign_principal_ste, capsize=3, color='black', zorder=1)
-    ax.scatter(x=x_positions[0], y=benign_principal_mean-benign_principal_mean, s=170, color='steelblue', zorder=2)
-    ax.errorbar(x=x_positions[1], y=pathogenic_principal_mean-benign_principal_mean, yerr=pathogenic_principal_ste, capsize=3, color='black', zorder=1)
-    ax.scatter(x=x_positions[1], y=pathogenic_principal_mean-benign_principal_mean, s=170, color='orange', zorder=2)
-    ax.errorbar(x=x_positions[2], y=pathogenic_mean-benign_principal_mean, yerr=pathogenic_ste, capsize=3, color='black', zorder=1)
-    ax.scatter(x=x_positions[2], y=pathogenic_mean-benign_principal_mean, s=170, color='mediumvioletred', zorder=2)
+    ax.errorbar(x=x_positions[0], y=benign_mean-benign_mean, yerr=benign_ste, capsize=3, color='black', zorder=1)
+    ax.scatter(x=x_positions[0], y=benign_mean-benign_mean, s=170, color='steelblue', zorder=2)
+    ax.errorbar(x=x_positions[1], y=pathogenic_principal_mean-benign_mean, yerr=pathogenic_principal_ste, capsize=3, color='black', zorder=1)
+    ax.scatter(x=x_positions[1], y=pathogenic_principal_mean-benign_mean, s=170, color='orange', zorder=2)
+    ax.errorbar(x=x_positions[2], y=pathogenic_mean-benign_mean, yerr=pathogenic_ste, capsize=3, color='black', zorder=1)
+    ax.scatter(x=x_positions[2], y=pathogenic_mean-benign_mean, s=170, color='mediumvioletred', zorder=2)
 
     ax.set_xticks(x_positions)
-    ax.set_xticklabels(['Neutral\n(gene)', 'Pathogenic\n(gene)', 'Pathogenic\n(isoform)'], fontsize=13.5)
+    ax.set_xticklabels(['Neutral\n(isoform)', 'Pathogenic\n(gene)', 'Pathogenic\n(isoform)'], fontsize=13.5)
     ax.set_xlim(-0.5, 2.5)
     ax.set_xlabel('')
     ax.set_ylabel('abs(effect size)', fontsize=14)
 
     # compute p values
-    ttest_max = ttest_ind(pathogenic_all[col], benign_copy_path[col], alternative='greater').pvalue
-    ttest_principal = ttest_ind(principal_copy_path[col], benign_copy_path[col], alternative='greater').pvalue
+    ttest_max = ttest_ind(pathogenic_all[col], benign_all[col], alternative='greater').pvalue
+    ttest_principal = ttest_ind(principal_copy_path[col], benign_all[col], alternative='greater').pvalue
     ttest_patho_principal_vs_max = ttest_ind(pathogenic_all[col], principal_copy_path[col], alternative='greater').pvalue
-    ttest_max_matched = ttest_ind(pathogenic_all[col], benign_all[col], alternative='greater').pvalue
     
     custom_thresholds = {
         0.01: '***',
@@ -100,15 +99,14 @@ def analyze_HGMD_variants(col='max_effect'):
         0.1: '*',
         1: 'ns'
     }
-    pvalues = [ttest_max, ttest_principal, ttest_patho_principal_vs_max, ttest_max_matched]
+    pvalues = [ttest_max, ttest_principal, ttest_patho_principal_vs_max]
     _, corrected_pvals, _, _ = multipletests(pvalues, method='fdr_bh')
-    corrected_pvals = corrected_pvals[:3]
     star_labels = get_star_labels(corrected_pvals, custom_thresholds)
     pairs = [(0, 2), (0, 1), (1, 2)] 
     offsets = [0.14, 0.04, 0.027]
-    y_positions = [pathogenic_mean-benign_principal_mean + pathogenic_ste + offsets[0], 
-                    pathogenic_principal_mean-benign_principal_mean + pathogenic_principal_ste + offsets[1], 
-                    pathogenic_mean-benign_principal_mean + pathogenic_ste + offsets[2]] 
+    y_positions = [pathogenic_mean-benign_mean + pathogenic_ste + offsets[0], 
+                    pathogenic_principal_mean-benign_mean + pathogenic_principal_ste + offsets[1], 
+                    pathogenic_mean-benign_mean + pathogenic_ste + offsets[2]]
     draw_lines_and_stars(ax, pairs, y_positions, star_labels)
     plt.yticks(fontsize=12)
     ax.spines['top'].set_visible(False)
@@ -116,6 +114,9 @@ def analyze_HGMD_variants(col='max_effect'):
     ax.spines['left'].set_linewidth(2)
     ax.spines['bottom'].set_linewidth(2)
     plt.title(f'HGMD DFP', fontsize=17)
+
+    os.makedirs('figures', exist_ok=True)
+    
     plt.savefig(f'figures/HGMD_DFP_Otari_predicted_variant_effects.png', dpi=600, bbox_inches='tight')
     plt.close()
 
