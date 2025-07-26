@@ -1,5 +1,6 @@
-from collections import defaultdict
+import os
 import gzip
+from collections import defaultdict
 
 import torch
 import pickle as rick
@@ -34,7 +35,7 @@ def test_on_ESPRESSO(model, dataset):
     predicted = defaultdict(list) # for computing corr
     ground_truth = defaultdict(list) # for computing corr
 
-    with open('resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
 
     with torch.no_grad():
@@ -100,7 +101,7 @@ def plot_ESPRESSO(metrics, output):
     axs.spines['left'].set_linewidth(2)
     axs.set_xlim([0, 1])
     axs.set_title('Evaluation on holdout set\n(Gao et al)', fontsize=17)
-
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig(f'figures/Otari_evaluation_chrom8_{output}.png', dpi=600, bbox_inches='tight')
     plt.show()
@@ -114,7 +115,7 @@ def transcript_complexity_analysis(model, dataset):
     num_exons_to_predicted = defaultdict(lambda: defaultdict(list))
     num_exons_to_true = defaultdict(lambda: defaultdict(list))
 
-    with open('resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
 
     with torch.no_grad():
@@ -181,16 +182,17 @@ def transcript_complexity_analysis(model, dataset):
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig('figures/Otari_transcript_complexity_vs_AUROC.png', dpi=600, bbox_inches='tight')
     plt.close()
 
 
 def compute_per_gene_correlation(model, dataset):
-    with open('resources/transcript2gene.pkl', 'rb') as f:
+    with open('../resources/transcript2gene.pkl', 'rb') as f:
         transcript2gene = rick.load(f)
 
-    with open('resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
 
     gene_to_iso_exp = defaultdict(lambda: defaultdict(list))
@@ -255,6 +257,7 @@ def compute_per_gene_correlation(model, dataset):
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig('figures/Otari_pearsonr_per_gene.png', dpi=600, bbox_inches='tight')
     plt.close()
@@ -263,10 +266,10 @@ def compute_per_gene_correlation(model, dataset):
 def isoform_vs_global_AUROC(model, dataset):
     cutoffs = compute_tissue_cutoffs()
 
-    with open('resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
     
-    with open('resources/transcript2gene.pkl', 'rb') as f:
+    with open('../resources/transcript2gene.pkl', 'rb') as f:
         transcript2gene = rick.load(f)
 
     true_observed = defaultdict(list)
@@ -346,6 +349,7 @@ def isoform_vs_global_AUROC(model, dataset):
     ax.tick_params(axis='x', labelsize=12.5)
     ax.tick_params(axis='y', labelsize=12.5)
     ax.plot([0, 1], [0, 1], 'k--', lw=2)
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig('figures/Otari_isoform_vs_gene_AUROC.png', dpi=600, bbox_inches='tight')
     plt.close()
