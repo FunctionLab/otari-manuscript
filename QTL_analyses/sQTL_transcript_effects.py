@@ -18,9 +18,9 @@ TISSUE_NAMES = ['Brain', 'Caudate_Nucleus', 'Cerebellum', 'Cerebral_Cortex',
 
 def sQTL_effects_analysis():
     tissues = ['Brain_Cortex', 'Liver', 'Whole_Blood', 'Lung', 'Heart_Atrial_Appendage', 'Colon_Sigmoid']
-    variant_files = [f'resources/GTEx_fine_mapped_sQTLs/{tissue}.v10.sQTLs.SuSiE_summary.tsv' 
+    variant_files = [f'../resources/GTEx_fine_mapped_sQTLs/{tissue}.v10.sQTLs.SuSiE_summary.tsv' 
                     for tissue in tissues]
-    effect_files = [f'resources/variant_effects/GTEx_fine_mapped_sQTLs/{tissue.split("_")[0]}/variant_effects_comprehensive.tsv'
+    effect_files = [f'../resources/variant_effects/GTEx_fine_mapped_sQTLs/{tissue.split("_")[0]}/variant_effects_comprehensive.tsv'
                     for tissue in tissues]
 
     sqtl_variants = {tissue: pd.read_csv(file, sep='\t') for tissue, file in zip(tissues, variant_files)}
@@ -45,7 +45,7 @@ def sQTL_effects_analysis():
     colon_sqtl_variant_effects = sqtl_variant_effects['Colon_Sigmoid']
 
     gtf_reader = read_gtf()
-    gene_to_transcript = 'resources/gene2transcripts.pkl'
+    gene_to_transcript = '../resources/gene2transcripts.pkl'
     with open(gene_to_transcript, 'rb') as file:
         gene2transcripts = rick.load(file)
         
@@ -77,7 +77,7 @@ def sQTL_effects_analysis():
             )
 
         # scale to background distribution
-        background_path = 'resources/background_distribution.tsv'
+        background_path = '../resources/background_distribution.tsv'
         background = pd.read_csv(background_path, sep='\t')
         mean_global = background[TISSUE_NAMES].values.flatten().mean()
         std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -206,7 +206,7 @@ def sQTL_effects_analysis():
     ]
 
     means, ste, p_vals = zip(*[calculate_metrics(utilized, non_utilized) for utilized, non_utilized in tissue_data])
-    p_vals = multipletests(p_vals, method='fdr_bh')[1]  # Adjust p-values
+    p_vals = multipletests(p_vals, method='fdr_bh')[1]  # adjust p-values
 
     # plot 
     fig, ax = plt.subplots(1, 1, figsize=(9.5, 4.1))
@@ -234,6 +234,9 @@ def sQTL_effects_analysis():
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
+
+    os.makedirs('figures', exist_ok=True)
+  
     plt.tight_layout()
     plt.savefig(f'figures/Otari_sQTL_predicted_effects.png', dpi=600, bbox_inches='tight')
     plt.close()
