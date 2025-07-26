@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 
 import pandas as pd
@@ -43,7 +44,7 @@ def PTEN_clinical_variant_analysis(transcript_subset=False):
         tid_node_to_l2 = rick.load(f)
     
     # scale scores to background distribution
-    background_path = 'resources/background_distribution.tsv'
+    background_path = '../resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
     std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -90,6 +91,9 @@ def PTEN_clinical_variant_analysis(transcript_subset=False):
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
     plt.tight_layout()
+
+    os.makedirs('figures', exist_ok=True)
+    
     plt.savefig(f'figures/{file_name}_features_affected.png', dpi=600, bbox_inches='tight')
     plt.close()
 
