@@ -17,8 +17,8 @@ def get_H19_variant_effects(gene_id = 'ENSG00000130600'):
     t1_effects = [] 
     t2_effects = [] 
     for variant in variant_list:
-        clinvar_df = pd.read_csv('variant_effects/clinvar_H19_variant/interpretability_analysis.tsv', sep='\t')
-        vep = pd.read_csv('variant_effects/clinvar_H19_variant/variant_effects_comprehensive.tsv', sep='\t')
+        clinvar_df = pd.read_csv('../resources/variant_effects/clinvar_H19_variant/interpretability_analysis.tsv', sep='\t')
+        vep = pd.read_csv('../resources/variant_effects/clinvar_H19_variant/variant_effects_comprehensive.tsv', sep='\t')
 
         clinvar_df = clinvar_df[clinvar_df['variant_id'] == variant].reset_index()
         vep = vep[vep['variant_id'] == variant].reset_index()
