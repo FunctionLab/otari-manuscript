@@ -28,7 +28,7 @@ def get_H19_variant_effects(gene_id = 'ENSG00000130600'):
         vep = vep[vep['transcript_id'].isin(transcripts)]
 
         # scale scores to background distribution
-        background_path = 'resources/background_distribution.tsv'
+        background_path = '../resources/background_distribution.tsv'
         background = pd.read_csv(background_path, sep='\t')
         mean_global = background[TISSUE_NAMES].values.flatten().mean()
         std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -79,6 +79,9 @@ def get_H19_variant_effects(gene_id = 'ENSG00000130600'):
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
+
+    os.makedirs('figures', exist_ok=True)
+    
     plt.savefig('figures/H19_variant_effects_comparison.png', dpi=600, bbox_inches='tight')
     plt.close()
 
