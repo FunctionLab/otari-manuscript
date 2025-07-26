@@ -23,6 +23,7 @@ sh ./download_data.sh
 ```
 
 to get the data and resource files used in some of these analyses. 
+
 **NOTE**: Some of the data used in analysis is protected. In order to abide by the informed consents that individuals with autism and their family members signed when agreeing to participate in a SFARI cohort (e.g. SPARK), researchers must be approved by SFARI Base (https://base.sfari.org).
 
 ### Inference and variant effect prediction
