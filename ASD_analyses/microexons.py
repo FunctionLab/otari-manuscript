@@ -49,7 +49,7 @@ def analyze_microexons():
     siblings_tid_to_gid = dict(zip(merged_siblings['transcript_id'], merged_siblings['gene_id']))
 
     # scale scores
-    background_path = 'resources/background_distribution.tsv'
+    background_path = '../resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
     std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -174,6 +174,9 @@ def analyze_microexons():
     pairs = [(0, 1), (0, 2), (2, 3)]
     y_positions = [1.76, 1.87, 1.93]
     draw_lines_and_stars(ax, pairs, y_positions, star_labels)
+    
+    os.makedirs('figures', exist_ok=True)
+  
     plt.tight_layout()
     plt.savefig('figures/microexons_predicted_effects.png', dpi=600, bbox_inches='tight')
     plt.close()
