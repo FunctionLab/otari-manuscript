@@ -1,5 +1,6 @@
-from collections import defaultdict
+import os
 import gzip
+from collections import defaultdict
 
 import torch
 import pickle as rick
@@ -58,7 +59,7 @@ def test_on_GTEx(model, dataset):
 
     tissue_pairs_idx = [(gtex_tissue_to_idx[t1], espresso_tissue_to_idx[t2]) for t1, t2 in tissue_pairs]
 
-    with open('resources/protein_coding_lncrna_transcripts_gtex.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_gtex.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
 
     with torch.no_grad():
@@ -120,7 +121,7 @@ def test_on_CTX(model, dataset):
 
     tissue_pairs_idx = [(ctx_tissue_to_idx[t1], espresso_tissue_to_idx[t2]) for t1, t2 in tissue_pairs]
 
-    with open('resources/protein_coding_lncrna_transcripts_ctx.pkl', 'rb') as f:
+    with open('../resources/protein_coding_lncrna_transcripts_ctx.pkl', 'rb') as f:
         protein_coding_lncrna = rick.load(f)
 
     with torch.no_grad():
@@ -185,7 +186,7 @@ def plot_metrics(metrics, output):
     axs.spines['left'].set_linewidth(2)
     axs.set_xlim([0, 1])
     axs.set_title(f'Validation\n({output})', fontsize=17)
-
+    os.makedirs('figures', exist_ok=True)
     plt.tight_layout()
     plt.savefig(f'figures/Otari_validation_GTEX_{output}.png', dpi=600, bbox_inches='tight')
     plt.show()
