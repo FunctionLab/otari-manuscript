@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,19 +24,15 @@ NON_BRAIN_TISSUES = ['bladder', 'blood', 'colon', 'heart', 'kidney', 'liver', 'l
                     'spleen', 'stomach', 'thyroid']
 
 
-def analyze_ASD_variants(ssc=False, col='max_effect'):
-    if ssc:
-        probands = '../resources/variant_effects/SSC_DNVs_probands_satterstrom/variant_effects_comprehensive.tsv'
-        siblings = '../resources/variant_effects/SSC_DNVs_siblings_satterstrom/variant_effects_comprehensive.tsv'
-    else:
-        probands = '../resources/variant_effects/DNVs_probands_satterstrom/variant_effects_comprehensive.tsv'
-        siblings = '../resources/variant_effects/DNVs_siblings_satterstrom/variant_effects_comprehensive.tsv'
+def analyze_ASD_variants(col='max_effect'):
+    probands = '../resources/variant_effects/DNVs_probands_satterstrom/variant_effects_comprehensive.tsv'
+    siblings = '../resources/variant_effects/DNVs_siblings_satterstrom/variant_effects_comprehensive.tsv'
         
     probands = pd.read_csv(probands, sep='\t').drop_duplicates(keep='first')
     siblings = pd.read_csv(siblings, sep='\t').drop_duplicates(keep='first')
 
     # scale scores to background distribution
-    background_path = 'resources/background_distribution.tsv'
+    background_path = '../resources/background_distribution.tsv'
     background = pd.read_csv(background_path, sep='\t')
     mean_global = background[TISSUE_NAMES].values.flatten().mean()
     std_global = background[TISSUE_NAMES].values.flatten().std()
@@ -79,12 +77,11 @@ def analyze_ASD_variants(ssc=False, col='max_effect'):
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_linewidth(2)
     ax.spines['bottom'].set_linewidth(2)
-    if ssc:
-        plt.title('SSC (Satterstrom genes)', fontsize=16)
-        plt.savefig('figures/SSC_DNVs_satterstrom_predicted_effects.png', dpi=600, bbox_inches='tight')
-    else:
-        plt.title('SPARK (Satterstrom genes)', fontsize=17)
-        plt.savefig('figures/SPARK_DNVs_satterstrom_predicted_effects.png', dpi=600, bbox_inches='tight')
+
+    os.makedirs('figures', exist_ok=True)
+  
+    plt.title('SPARK (Satterstrom genes)', fontsize=17)
+    plt.savefig('figures/SPARK_DNVs_satterstrom_predicted_effects.png', dpi=600, bbox_inches='tight')
     plt.close()
 
     # tissue-specific analysis
@@ -118,10 +115,7 @@ def analyze_ASD_variants(ssc=False, col='max_effect'):
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_linewidth(2)
     ax.spines['bottom'].set_linewidth(2)
-    if ssc:
-        plt.savefig('figures/SSC_DNVs_tissue_specific_effects.png', dpi=600, bbox_inches='tight')
-    else:
-        plt.savefig('figures/SPARK_DNVs_tissue_specific_effects.png', dpi=600, bbox_inches='tight')
+    plt.savefig('figures/SPARK_DNVs_tissue_specific_effects.png', dpi=600, bbox_inches='tight')
     plt.close()
 
     # compare brain vs non-brain tissues
@@ -150,13 +144,9 @@ def analyze_ASD_variants(ssc=False, col='max_effect'):
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_linewidth(2)
     ax.spines['bottom'].set_linewidth(2)
-    if ssc:
-        plt.savefig('figures/SSC_DNVs_brain_vs_nonbrain.png', dpi=600, bbox_inches='tight')
-    else:
-        plt.savefig('figures/SPARK_DNVs_brain_vs_nonbrain.png', dpi=600, bbox_inches='tight')
+    plt.savefig('figures/SPARK_DNVs_brain_vs_nonbrain.png', dpi=600, bbox_inches='tight')
     plt.close()
 
 
 if __name__ == '__main__':
-    analyze_ASD_variants(ssc=False) # SPARK analysis
-    analyze_ASD_variants(ssc=True)  # SSC analysis
+    analyze_ASD_variants()
