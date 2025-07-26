@@ -28,7 +28,7 @@ to get the data and resource files used in some of these analyses.
 
 ### Inference and variant effect prediction
 
-If you are interested in running the Otari framework on your own list of variants, you can refer to the [otari](https://github.com/FunctionLab/otari) repository. 
+If you are interested in running the Otari framework on a list of variants, you can refer to the [otari](https://github.com/FunctionLab/otari) repository. 
 
 ## Code for results/figures
 
