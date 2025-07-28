@@ -93,7 +93,7 @@ def analyze_HGMD_variants(col='max_effect'):
     # compute p values
     ttest_max = ttest_ind(pathogenic_all[col], benign_all[col], equal_var=False, alternative='greater').pvalue
     ttest_principal = ttest_ind(principal_copy_path[col], benign_all[col], equal_var=False, alternative='greater').pvalue
-    ttest_patho_principal_vs_max = ttest_ind(pathogenic_all[col], principal_copy_path[col], alternative='greater').pvalue
+    ttest_patho_principal_vs_max = ttest_ind(pathogenic_all[col], principal_copy_path[col], equal_var=False, alternative='greater').pvalue
     
     custom_thresholds = {
         0.01: '***',
