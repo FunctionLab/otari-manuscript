@@ -194,7 +194,7 @@ def sQTL_effects_analysis():
         mean_non_utilized = np.mean(non_utilized)
         ste_utilized = np.std(utilized) / np.sqrt(len(utilized))
         ste_non_utilized = np.std(non_utilized) / np.sqrt(len(non_utilized))
-        p_val = ttest_ind(utilized, non_utilized, alternative='greater').pvalue
+        p_val = ttest_ind(utilized, non_utilized, alternative='greater', equal_var=False).pvalue
         return [mean_utilized, mean_non_utilized], [ste_utilized, ste_non_utilized], p_val
 
     tissue_data = [
