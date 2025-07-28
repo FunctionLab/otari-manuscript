@@ -102,7 +102,7 @@ def analyze_HGMD_variants(col='max_effect'):
         1: 'ns'
     }
     pvalues = [ttest_max, ttest_principal, ttest_patho_principal_vs_max]
-    _, corrected_pvals, _, _ = multipletests(pvalues, method='fdr_bh')
+    corrected_pvals = multipletests(pvalues, method='fdr_bh')[1]
     star_labels = get_star_labels(corrected_pvals, custom_thresholds)
     pairs = [(0, 2), (0, 1), (1, 2)] 
     offsets = [0.14, 0.04, 0.027]
