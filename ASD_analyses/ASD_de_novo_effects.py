@@ -57,7 +57,7 @@ def analyze_ASD_variants(col='max_effect'):
     proband_mean = proband_mean - sibling_mean
     sibling_mean = sibling_mean - sibling_mean
     
-    pval = ttest_ind(probands[col], siblings[col], alternative='greater').pvalue
+    pval = ttest_ind(probands[col], siblings[col], equal_var=False, alternative='greater').pvalue
 
     fig, ax = plt.subplots(figsize=(3.9, 4.2))
     x_positions = [1, 2]
@@ -125,7 +125,7 @@ def analyze_ASD_variants(col='max_effect'):
     brain_ste = np.std(brain_effect_sizes) / np.sqrt(len(brain_effect_sizes))
     non_brain_mean = np.mean(non_brain_effect_sizes)-np.mean(non_brain_effect_sizes)
     non_brain_ste = np.std(non_brain_effect_sizes) / np.sqrt(len(non_brain_effect_sizes))
-    ttest = ttest_ind(brain_effect_sizes, non_brain_effect_sizes, alternative='greater').pvalue
+    ttest = ttest_ind(brain_effect_sizes, non_brain_effect_sizes, equal_var=False, alternative='greater').pvalue
 
     fig, ax = plt.subplots(figsize=(1.7, 2.5))
     x_positions = [2, 1]
