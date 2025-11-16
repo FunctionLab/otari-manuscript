@@ -355,6 +355,102 @@ def isoform_vs_global_AUROC(model, dataset):
     plt.close()
 
 
+def isoform_vs_global_AUROC_sum(model, dataset):
+    cutoffs = compute_tissue_cutoffs()
+
+    with open('../resources/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
+        protein_coding_lncrna = rick.load(f)
+    
+    with open('../resources/transcript2gene.pkl', 'rb') as f:
+        transcript2gene = rick.load(f)
+
+    true_observed = defaultdict(list)
+    predicted = defaultdict(list)
+    all_predicted = defaultdict(list)
+    # keep track of observed abundances for isoforms of each gene
+    tissue_to_gene_to_abundance = defaultdict(lambda: defaultdict(list))
+    tissue_to_gene_to_predicted = defaultdict(lambda: defaultdict(list))
+
+    with torch.no_grad():
+        for x in dataset:
+            if x.transcript_id not in protein_coding_lncrna:
+                continue
+            pred = model(x)
+            pred = pred.squeeze(0).cpu().detach().numpy()
+            y = x.y.squeeze(0).cpu().detach().numpy()
+
+            if x.transcript_id not in transcript2gene:
+                continue
+            gene = transcript2gene[x.transcript_id]
+
+            for i, tissue in enumerate(TISSUE_NAMES):
+                all_predicted[tissue].append(pred[i])
+
+                y_tissue = binarize(y[i], tissue, cutoffs)
+                if np.isnan(y_tissue):
+                    continue
+
+                x_tissue = pred[i]
+                true_observed[tissue].append(y_tissue)
+                predicted[tissue].append(x_tissue)
+
+                tissue_to_gene_to_abundance[tissue][gene].append(y_tissue)
+                tissue_to_gene_to_predicted[tissue][gene].append(x_tissue)
+    
+    # compute sum abundance per gene in each tissue
+    tissue_to_gene_to_sum_abundance = defaultdict(lambda: defaultdict(float))
+    tissue_to_all_gene_sums = defaultdict(list)  # New: list of all gene sums per tissue
+    for t in TISSUE_NAMES:
+        for gene in tissue_to_gene_to_predicted[t].keys():
+            linear_values = [2**x for x in tissue_to_gene_to_predicted[t][gene]]
+            sum_abundance = sum(linear_values)
+            tissue_to_gene_to_sum_abundance[t][gene] = sum_abundance
+            tissue_to_all_gene_sums[t].append(sum_abundance)
+
+    tissue_to_auroc_isoform = {}
+    tissue_to_auroc_gene = {}
+    for i, tissue in enumerate(TISSUE_NAMES):
+        # compute isoform-level AUROC
+        sorted_predicted = sorted(all_predicted[tissue])
+        predicted_ranked = [sorted_predicted.index(x) / len(sorted_predicted) for x in predicted[tissue]]
+        tissue_to_auroc_isoform[tissue] = roc_auc_score(true_observed[tissue], predicted_ranked)
+
+        # compute gene-level AUROC
+        gene_predicted = []
+        gene_true = []
+        for gene in tissue_to_gene_to_abundance[tissue].keys():
+            gene_true.extend(tissue_to_gene_to_abundance[tissue][gene])
+            gene_predicted.extend([tissue_to_gene_to_sum_abundance[tissue][gene]] * len(tissue_to_gene_to_abundance[tissue][gene]))
+        sorted_gene_sums = sorted(tissue_to_all_gene_sums[tissue])
+        gene_predicted_ranked = [sorted_gene_sums.index(x) / len(sorted_gene_sums) for x in gene_predicted]
+        tissue_to_auroc_gene[tissue] = roc_auc_score(gene_true, gene_predicted_ranked)
+    
+    # plot
+    gene_pred = []
+    pred = []
+    for tissue in TISSUE_NAMES:
+        pred.append(tissue_to_auroc_isoform[tissue])
+        gene_pred.append(tissue_to_auroc_gene[tissue])
+    
+    fig, ax = plt.subplots(figsize=(5, 4.5))
+    sns.scatterplot(x=gene_pred, y=pred, ax=ax, s=230, color='steelblue', alpha=0.85, edgecolor='white', linewidth=1.5)
+    ax.set_xlabel('AUROC, gene-level (sum)', fontsize=17.5)
+    ax.set_ylabel('AUROC, isoform-specific', fontsize=17.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    plt.xlim([0.5,0.9])
+    plt.ylim([0.5,0.9])
+    ax.tick_params(axis='x', labelsize=12.5)
+    ax.tick_params(axis='y', labelsize=12.5)
+    ax.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.tight_layout()
+    os.makedirs('figures', exist_ok=True)
+    plt.savefig('figures/Otari_isoform_vs_gene_AUROC_sum.png', dpi=600, bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == "__main__":
     seed_everything(42, workers=True)
 
@@ -382,3 +478,5 @@ if __name__ == "__main__":
     transcript_complexity_analysis(model, dataset)
     compute_per_gene_correlation(model, dataset)
     isoform_vs_global_AUROC(model, dataset)
+    isoform_vs_global_AUROC_sum(model, dataset)
+    
