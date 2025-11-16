@@ -188,16 +188,15 @@ def sQTL_effects_analysis():
     colon_avg_effects_utilized = [effects[colon_idx] for effects in colon_var_effects_utilized.values()]
     colon_avg_effects_non_utilized = [effects[colon_idx] for effects in colon_var_effect_not_utilized.values()]
 
-    # Define a helper function to calculate metrics
+    # calculate metrics
     def calculate_metrics(utilized, non_utilized):
         mean_utilized = np.mean(utilized)
         mean_non_utilized = np.mean(non_utilized)
         ste_utilized = np.std(utilized) / np.sqrt(len(utilized))
         ste_non_utilized = np.std(non_utilized) / np.sqrt(len(non_utilized))
-        p_val = ttest_ind(utilized, non_utilized, alternative='greater').pvalue
+        p_val = ttest_ind(utilized, non_utilized, alternative='greater', equal_var=False).pvalue
         return [mean_utilized, mean_non_utilized], [ste_utilized, ste_non_utilized], p_val
 
-    # Calculate metrics for each tissue
     tissue_data = [
         (brain_avg_effects_utilized, brain_avg_effects_non_utilized),
         (liver_avg_effects_utilized, liver_avg_effects_non_utilized),
