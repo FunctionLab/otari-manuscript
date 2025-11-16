@@ -3,9 +3,10 @@ import gzip
 from collections import defaultdict
 
 import torch
+import pandas as pd
 import pickle as rick
 from pytorch_lightning import seed_everything
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, mannwhitneyu
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -451,6 +452,97 @@ def isoform_vs_global_AUROC_sum(model, dataset):
     plt.close()
 
 
+def ablation_study():
+    ablation_study = pd.read_csv('data/ablation_study.csv')
+    ablation_study_rocauc = ablation_study[[
+        'Name', 
+        'test/rocauc_Brain', 
+        'test/rocauc_Caudate_Nucleus', 
+        'test/rocauc_Cerebellum', 
+        'test/rocauc_Cerebral_Cortex', 
+        'test/rocauc_Corpus_Callosum', 
+        'test/rocauc_Fetal_Brain', 
+        'test/rocauc_Fetal_Spinal_Cord', 
+        'test/rocauc_Frontal_Lobe', 
+        'test/rocauc_Hippocampus', 
+        'test/rocauc_Medulla_Oblongata', 
+        'test/rocauc_Pons', 
+        'test/rocauc_Spinal_Cord', 
+        'test/rocauc_Temporal_Lobe', 
+        'test/rocauc_Thalamus', 
+        'test/rocauc_bladder', 
+        'test/rocauc_blood', 
+        'test/rocauc_colon', 
+        'test/rocauc_heart', 
+        'test/rocauc_kidney', 
+        'test/rocauc_liver', 
+        'test/rocauc_lung', 
+        'test/rocauc_ovary', 
+        'test/rocauc_pancreas', 
+        'test/rocauc_prostate', 
+        'test/rocauc_skeletal_muscle', 
+        'test/rocauc_small_intestine', 
+        'test/rocauc_spleen', 
+        'test/rocauc_stomach', 
+        'test/rocauc_testis', 
+        'test/rocauc_thyroid'
+        ]]
+    
+    # optional: subset Name to 'Seqweaver', 'Sei', 'ConvSplice', and 'All_Features'
+    ablation_study_rocauc = ablation_study_rocauc[ablation_study_rocauc['Name'].isin(
+        ['Seqweaver', 'Sei', 'ConvSplice', 'All_Features']
+        )]
+    ablation_study_rocauc.index = np.arange(len(ablation_study_rocauc))
+
+    plot_data = []
+    method_labels = []
+    tissue_labels = []
+    
+    for _, row in ablation_study_rocauc.iterrows():
+        method_name = row[0]
+        auc_values = row[1:].values
+        plot_data.extend(auc_values)
+        method_labels.extend([method_name] * len(auc_values))
+        tissue_labels.extend(TISSUE_NAMES)
+    
+    # Create DataFrame for plotting
+    plot_df = pd.DataFrame({
+        'Method': method_labels,
+        'Tissue': tissue_labels,
+        'ROC_AUC': plot_data
+    })
+    
+    colors = sns.color_palette('tab10', n_colors=len(ablation_study_rocauc))
+
+    # Compute p-value for All_Features vs Seqweaver
+    pval = mannwhitneyu(plot_df[plot_df['Method'] == 'All_Features']['ROC_AUC'], plot_df[plot_df['Method'] == 'Seqweaver']['ROC_AUC'], alternative='greater').pvalue
+    
+    # Define order for x-axis
+    method_order = ["ConvSplice", "Sei", "Seqweaver", "All_Features"]
+    
+    # Plot
+    _, ax = plt.subplots(figsize=(10, 7))
+    sns.boxplot(data=plot_df, x='Method', y='ROC_AUC', order=method_order, palette=colors, ax=ax)
+    ax.set_xlabel('Method', fontsize=22)
+    ax.set_ylabel('ROC AUC', fontsize=22)
+    ax.set_title('Ablation Study: ROC AUC Distribution', fontsize=24, fontweight='bold', y=1.04)
+    plt.yticks(fontsize=18)
+    plt.xticks(fontsize=18)
+    ax.set_ylim(0.6, 0.925)
+    x1, x2 = 2, 3
+    y = 0.92
+    ax.plot([x1, x1, x2, x2], [y-0.01, y, y, y-0.01], 'k-', lw=1.5)
+    ax.text((x1+x2)/2, y+0.005, f'p = {pval:.2e}', ha='center', va='bottom', fontsize=14, fontweight='bold')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    plt.tight_layout()
+    os.makedirs('figures', exist_ok=True)
+    plt.savefig('figures/Otari_ablation_study.png', dpi=900, bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == "__main__":
     seed_everything(42, workers=True)
 
@@ -479,4 +571,7 @@ if __name__ == "__main__":
     compute_per_gene_correlation(model, dataset)
     isoform_vs_global_AUROC(model, dataset)
     isoform_vs_global_AUROC_sum(model, dataset)
+    
+    # ablation study
+    ablation_study()
     
