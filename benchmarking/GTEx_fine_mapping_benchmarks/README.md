@@ -36,7 +36,7 @@ python plot_benchmark_results.py
 | `results/consolidated_scores.csv` | Per-variant scores (provided for reference) |
 | `results/roc_pr_curves_all_tissues.png` | ROC and PR curves |
 
-> **Note**: Raw prediction files (`data/predictions/`) are ~550 MB and not included in this repository. We provide `results/consolidated_scores.csv` (8 MB) which contains all scores needed to reproduce the analysis and figures.
+> **Note**: Raw prediction files (`data/predictions/`) are ~550 MB and not included in this repository. We provide `results/consolidated_scores.csv` which contains all scores needed to reproduce the analysis and figures.
 
 ## Downloading SuSiE Fine-Mapping Data
 
@@ -44,6 +44,7 @@ python plot_benchmark_results.py
 2. Navigate to **GTEx Analysis V10** → **Single-Tissue sQTL**
 3. Download SuSiE fine-mapping results for each tissue
 4. Place `.parquet` files in `data/susie/`
+5. Gencode version: v47
 
 Required files:
 - `Brain_Cortex.v10.sQTLs.SuSiE_summary.parquet`
@@ -59,10 +60,10 @@ Below are the commands used to generate predictions in `data/predictions/`.
 
 ### 1. Prepare Variant List
 
-Extract variants from SuSiE parquet files and convert to VCF:
+Extract variants (PIP >= 0.9 or PIP <=0.1) from SuSiE parquet files and convert to VCF:
 
 ```bash
-# Output: sQTL_variants.vcf (~7.5 MB, 257K variants)
+# Output: sQTL_variants.vcf
 ```
 
 ### 2. SpliceAI
@@ -72,9 +73,9 @@ spliceai -I sQTL_variants.vcf \
          -O sQTL_variants.spliceai.vcf \
          -R hg38.fa \
          -A grch38 \
-         -D 50
+         -D 1000
 ```
-- **Output**: `sQTL_variants.spliceai.vcf` (32 MB)
+- **Output**: `sQTL_variants.spliceai.vcf`
 - **Score**: Max of DS_AG, DS_AL, DS_DG, DS_DL
 
 ### 3. Pangolin
@@ -85,7 +86,7 @@ pangolin sQTL_variants.vcf \
          gencode.v47.annotation.db \
          sQTL_variants.pangolin.vcf
 ```
-- **Output**: `sQTL_variants.pangolin.vcf` (23 MB)
+- **Output**: `sQTL_variants.pangolin.vcf`
 - **Score**: Splice impact score from INFO field
 
 ### 4. MMSplice/MTSplice
@@ -96,14 +97,14 @@ python run_mmsplice.py sQTL_variants.vcf \
                        gencode.v47.annotation.gtf \
                        hg38.fa
 ```
-- **Output**: `sQTL_variants.mmsplice.tsv` (47 MB)
+- **Output**: `sQTL_variants.mmsplice.tsv`
 - **Score**: Mean absolute tissue-specific delta logit PSI
 
 ### 5. Otari
 
 ```bash
 # Run Otari model for tissue-specific splice effect prediction
-# Output: sQTL_variants.Otari.tsv (447 MB)
+# Output: sQTL_variants.Otari.tsv
 ```
 - **Score**: Sum of max absolute tissue effects across transcripts
 
