@@ -7,10 +7,15 @@ import pickle as rick
 import numpy as np
 import pandas as pd
 from sklearn.metrics import spearmanr
+from scipy.stats import ttest_ind, mannwhitneyu
+from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from alphagenome.models import dna_client
 from alphagenome.data import genome
+
+from utils.utils import draw_lines_and_stars, get_star_labels
 
 
 API_KEY = os.environ.get("ALPHAGENOME_API_KEY", "PASTE_YOUR_KEY_HERE")
@@ -21,6 +26,13 @@ PREFERRED_SEQ_LEN = 1048576
 
 # bp window on each side of TSS for CAGE
 CAGE_HALF_WINDOW = 500 
+
+TISSUE_NAMES = ['Brain', 'Caudate_Nucleus', 'Cerebellum', 'Cerebral_Cortex', 
+                'Corpus_Callosum', 'Fetal_Brain', 'Fetal_Spinal_Cord', 'Frontal_Lobe', 
+                'Hippocampus', 'Medulla_Oblongata', 'Pons', 'Spinal_Cord', 
+                'Temporal_Lobe', 'Thalamus', 'bladder', 'blood', 'colon', 'heart', 
+                'kidney', 'liver', 'lung', 'ovary', 'pancreas', 'prostate', 'skeletal_muscle', 
+                'small_intestine', 'spleen', 'stomach', 'testis', 'thyroid']
 
 
 def parse_gtf_attributes(attr: str) -> Dict[str, str]:
@@ -297,172 +309,140 @@ def predict_alphagenome_for_chr8():
     print("Wrote:", OUTPUT_CSV)
 
 
-def get_alphagenome_CAGE():
-    espresso_gt = pd.read_csv('data/espresso_gt.csv')
+def normalize_tissue_name(name: str) -> str:
+    replacements = [
+        ('spinal cord', 'Spinal_Cord'),
+        ('urinary bladder', 'bladder'),
+        ('venous blood', 'blood'),
+        ('prostate gland', 'prostate'),
+        ('small intestine', 'small_intestine'),
+        ('thyroid gland', 'thyroid'),
+        ('brain', 'Brain'),
+        ('skeletal muscle tissue', 'skeletal_muscle'),
+        ('frontal cortex', 'Frontal_Lobe'),
+        ('temporal lobe', 'Temporal_Lobe'),
+        ('cerebellum', 'Cerebellum'),
+    ]
+    for old, new in replacements:
+        name = name.replace(old, new)
+    return name
 
-    # Subset to genes on chrom8
-    with open('data/chrom2genes.pkl', 'rb') as f:
-        chrom2genes = rick.load(f)
 
-    chrom8_genes = chrom2genes['chr8']
-    chrom8_results = espresso_gt[espresso_gt['gene_id'].isin(chrom8_genes)]
+def get_alphagenome_predictions(track: str):
+    """
+    Args:
+        track: string of track name
+    Returns:
+        list of Spearman r values for each tissue for the given track
+    """
+    # Load Otari predictions and Espresso ground truth abundances
+    otari_predictions = pd.read_csv('data/espresso_chr8_lncrna_predictions.csv')
+    espresso_abundances = pd.read_csv('data/espresso_chr8_lncrna_true_abundances.csv')
+    transcript_ids = otari_predictions['transcript_id'].unique().tolist()
 
-    # Subset to protein-coding and long non-coding RNA transcripts
-    with open('data/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
-        protein_coding_lncrna = rick.load(f)
-    chrom8_results = chrom8_results[chrom8_results['transcript_id'].isin(protein_coding_lncrna)]
-
-    tissues = 'Brain,bladder,blood,colon,heart,kidney,liver,lung,ovary,pancreas,prostate,small_intestine,spleen,stomach,testis,thyroid'
-    tissue_names = tissues.split(',')
-
-    # Define tissue names for alphagenome
-    tissues_ag = 'Brain,bladder,blood,heart,kidney,liver,lung,ovary,pancreas,prostate,small_intestine,spleen,stomach,thyroid'
-    tissue_names_ag = tissues_ag.split(',')
-    tissue_indices_ag = [tissue_names.index(t) for t in tissue_names_ag]
-
-    # Alphagenome predictions
+    # Define available tissue names for AlphaGenome
+    tissue_names_ag = ['stomach', 'ovary', 'pancreas', 'thyroid gland', 'lung', 
+                    'spleen', 'liver', 'kidney', 'heart', 'brain', 'skeletal muscle tissue', 
+                    'urinary bladder', 'frontal cortex', 'temporal lobe', 'cerebellum', 
+                    'small intestine', 'spinal cord', 'prostate gland', 'venous blood']
+    
+    # Load AlphaGenome predictions
     out_df = pd.read_csv(OUTPUT_CSV)
     out_df['transcript_id'] = out_df['transcript_id'].apply(lambda x: x.split('.')[0])
-    out_df['tissue_name'] = [t.replace('urinary bladder', 'bladder').replace('venous blood', 'blood').replace('prostate gland', 'prostate').replace('small intestine', 'small_intestine').replace('thyroid gland', 'thyroid').replace('brain', 'Brain') for t in out_df['tissue_name']]
-    out_df['transcript_id'] = out_df['transcript_id'].apply(lambda x: x.split('.')[0])
 
-    # Create a mapping from tissue name to its order in tissue_names_ag
-    tissue_order = {tissue: idx for idx, tissue in enumerate(tissue_names_ag)}
+    # Normalize tissue names
     out_df = out_df[out_df['tissue_name'].isin(tissue_names_ag)]
-    out_df['tissue_order'] = out_df['tissue_name'].map(tissue_order)
-    
-    # Group by transcript_id and sort by tissue_order within each group
-    out_df = out_df.groupby('transcript_id').apply(lambda x: x.sort_values('tissue_order')).reset_index(drop=True)
-    out_df = out_df.drop('tissue_order', axis=1)
+    out_df['tissue_name'] = out_df['tissue_name'].apply(normalize_tissue_name)
+
+    # Subset to transcripts in otari_predictions
+    out_df['transcript_id'] = out_df['transcript_id'].apply(lambda x: x.split('.')[0])
+    out_df = out_df[out_df['transcript_id'].isin(transcript_ids)]
+
+    # Define tissue order
+    tissue_order_alphagenome = out_df['tissue_name'].unique().tolist()
     
     alphagenome_proc = []
     espresso_proc = []
-    for _, row in chrom8_results.iterrows():
-        espresso = row['espresso'].split(',')
-        espresso = [espresso[i] for i in tissue_indices_ag]
-        espresso_proc.append([float(x) for x in espresso])
-
+    for _, row in espresso_abundances.iterrows():
         transcript_id = row['transcript_id']
         transcript_data = out_df[out_df['transcript_id'] == transcript_id]
         
-        if len(transcript_data) > 0:
-            alphagenome_values = transcript_data['cage_tss_max'].tolist()
-            alphagenome_values = [0.0 if (np.isnan(x) or np.isinf(x)) else x for x in alphagenome_values]
-            alphagenome_proc.append(alphagenome_values)
-        else:
-            continue
+        # Order tissues by tissue_order_alphagenome
+        order_map = {tissue: idx for idx, tissue in enumerate(tissue_order_alphagenome)}
+        transcript_data = transcript_data[transcript_data['tissue_name'].isin(order_map)]
+        transcript_data = transcript_data.copy()
+        transcript_data['_order'] = transcript_data['tissue_name'].map(order_map)
+        transcript_data = transcript_data.sort_values('_order').drop(columns='_order')
         
-    # Compute correlations for each tissue
+        # Fetch AlphaGenome values
+        alphagenome_values = transcript_data[track].tolist()
+        alphagenome_values = [0.0 if (np.isnan(x) or np.isinf(x)) else x for x in alphagenome_values]
+        alphagenome_proc.append(alphagenome_values)
+
+        # Fetch espresso gt values
+        espresso_values = [row[tissue] for tissue in tissue_order_alphagenome]
+        espresso_proc.append(espresso_values)
+    
+    # Get a correlation for each tissue
     ag_spearmanr = []
-    for t in range(len(tissue_names_ag)):
+    for t in range(len(tissue_order_alphagenome)):
         ag_tissue = [x[t] for x in alphagenome_proc]
         espresso_tissue = [x[t] for x in espresso_proc]
         ag_spearmanr.append(spearmanr(ag_tissue, espresso_tissue).statistic)
-
-    return ag_spearmanr
-
-
-def get_alphagenome_RNAseq():
-    espresso_gt = pd.read_csv('data/espresso_gt.csv')
-
-    # subset to genes on chrom8
-    with open('data/chrom2genes.pkl', 'rb') as f:
-        chrom2genes = rick.load(f)
-
-    chrom8_genes = chrom2genes['chr8']
-    chrom8_results = espresso_gt[espresso_gt['gene_id'].isin(chrom8_genes)]
-
-    # Subset to protein-coding and long non-coding RNA transcripts
-    with open('data/protein_coding_lncrna_transcripts_espresso.pkl', 'rb') as f:
-        protein_coding_lncrna = rick.load(f)
-    chrom8_results = chrom8_results[chrom8_results['transcript_id'].isin(protein_coding_lncrna)]
-
-    tissues = 'Brain,bladder,blood,colon,heart,kidney,liver,lung,ovary,pancreas,prostate,small_intestine,spleen,stomach,testis,thyroid'
-    tissue_names = tissues.split(',')
-
-    # Define tissue names for alphagenome
-    tissues_ag = 'Brain,bladder,blood,heart,kidney,liver,lung,ovary,pancreas,prostate,small_intestine,spleen,stomach,thyroid'
-    tissue_names_ag = tissues_ag.split(',')
-    tissue_indices_ag = [tissue_names.index(t) for t in tissue_names_ag]
-
-    # Alphagenome predictions
-    out_df = pd.read_csv(OUTPUT_CSV)
-    out_df['transcript_id'] = out_df['transcript_id'].apply(lambda x: x.split('.')[0])
-    out_df['tissue_name'] = [t.replace('urinary bladder', 'bladder').replace('venous blood', 'blood').replace('prostate gland', 'prostate').replace('small intestine', 'small_intestine').replace('thyroid gland', 'thyroid').replace('brain', 'Brain') for t in out_df['tissue_name']]
-    out_df['transcript_id'] = out_df['transcript_id'].apply(lambda x: x.split('.')[0])
-
-    # Create a mapping from tissue name to its order in tissue_names_ag
-    tissue_order = {tissue: idx for idx, tissue in enumerate(tissue_names_ag)}
-    out_df = out_df[out_df['tissue_name'].isin(tissue_names_ag)]
-    out_df['tissue_order'] = out_df['tissue_name'].map(tissue_order)
     
-    # Group by transcript_id and sort by tissue_order within each group
-    out_df = out_df.groupby('transcript_id').apply(lambda x: x.sort_values('tissue_order')).reset_index(drop=True)
-    out_df = out_df.drop('tissue_order', axis=1)
-    
-    alphagenome_proc = []
-    espresso_proc = []
-    for _, row in chrom8_results.iterrows():
-        espresso = row['espresso'].split(',')
-        espresso = [espresso[i] for i in tissue_indices_ag]
-        espresso_proc.append([float(x) for x in espresso])
-
-        transcript_id = row['transcript_id']
-        transcript_data = out_df[out_df['transcript_id'] == transcript_id]
-        
-        if len(transcript_data) > 0:
-            alphagenome_values = transcript_data['rna_exon_sum_norm'].tolist()
-            alphagenome_values = [0.0 if (np.isnan(x) or np.isinf(x)) else x for x in alphagenome_values]
-            alphagenome_proc.append(alphagenome_values)
-        else:
-            continue
-        
-    # Compute correlations for each tissue
-    ag_spearmanr = []
-    for t in range(len(tissue_names_ag)):
-        ag_tissue = [x[t] for x in alphagenome_proc]
-        espresso_tissue = [x[t] for x in espresso_proc]
-        ag_spearmanr.append(spearmanr(ag_tissue, espresso_tissue).statistic)
-
     return ag_spearmanr
 
 
 def plot_AlphaGenome_benchmark():
-    ag_spearmanr_cage = get_alphagenome_CAGE()
-    ag_spearmanr_rna = get_alphagenome_RNAseq()
+    ag_spearmanr_cage = get_alphagenome_predictions(track='cage_tss_max')
+    ag_spearmanr_rna = get_alphagenome_predictions(track='rna_exon_sum_norm')
 
+    # Load Otari predictions and Espresso ground truth
     with open('data/otari_predicted_espresso.pkl', 'rb') as f:
         otari_pred = rick.load(f)
     with open('data/ground_truth_espresso.pkl', 'rb') as f:
         otari_true = rick.load(f)
 
-    selected_tissues = 'Brain,bladder,blood,heart,kidney,liver,lung,ovary,pancreas,prostate,small_intestine,spleen,stomach,thyroid'.split(',')
-    all_tissues = ['Brain', 'Caudate_Nucleus', 'Cerebellum', 'Cerebral_Cortex', 'Corpus_Callosum', 'Fetal_Brain', 'Fetal_Spinal_Cord', 'Frontal_Lobe', 'Hippocampus', 'Medulla_Oblongata', 'Pons', 'Spinal_Cord', 'Temporal_Lobe', 'Thalamus', 'bladder', 'blood', 'colon', 'heart', 'kidney', 'liver', 'lung', 'ovary', 'pancreas', 'prostate', 'skeletal_muscle', 'small_intestine', 'spleen', 'stomach', 'testis', 'thyroid']
+    # Shared tissues between Otari and AlphaGenome
+    shared_tissues = ['stomach', 'ovary', 'pancreas', 'thyroid', 'lung', 
+                    'spleen', 'liver', 'kidney', 'heart', 'Brain', 
+                    'skeletal_muscle', 'bladder', 'Frontal_Lobe', 
+                    'Temporal_Lobe', 'Cerebellum', 'small_intestine', 
+                    'Spinal_Cord', 'prostate', 'blood']
     
     otari_spearmanr = []
-    for _, t in enumerate(all_tissues):
-        if t not in selected_tissues:
+    for _, t in enumerate(TISSUE_NAMES):
+        if t not in shared_tissues:
             continue
         otari_spearmanr.append(spearmanr(otari_pred[t], otari_true[t]).statistic)
     
+    # Compute p-values
+    p_value_rna = mannwhitneyu(ag_spearmanr_rna, otari_spearmanr, alternative='two-sided').pvalue
+    p_value_cage = mannwhitneyu(ag_spearmanr_cage, otari_spearmanr, alternative='two-sided').pvalue
+    pvals = [p_value_rna, p_value_cage]
+    _, corrected_pvals, _, _ = multipletests(pvals, method='fdr_bh')
+
     # Plot results
-    _, ax = plt.subplots(1, 1, figsize=(8.5, 5))
-    tissues = selected_tissues
-    x = np.arange(len(tissues))
-    width = 0.22
-    ax.bar(x - width, ag_spearmanr_rna, width, label='AlphaGenome (RNA-seq)', color='darkturquoise', alpha=0.8)
-    ax.bar(x, ag_spearmanr_cage, width, label='AlphaGenome (CAGE)', color='darkorange', alpha=0.8)
-    ax.bar(x + width, otari_spearmanr, width, label='Otari', color='crimson', alpha=0.8)
-    ax.set_xticks(x)
-    ax.set_xticklabels(tissues, rotation=45, fontsize=14, ha='right')
-    ax.set_title('ESPRESSO Chrom 8 benchmark', fontsize=14.5, fontweight='bold')
-    ax.legend(loc='upper center', fontsize=12, frameon=False, ncol=3)
-    ax.set_ylim(0.4, 0.68)
+    _, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+    sns.boxplot(data=[ag_spearmanr_cage, ag_spearmanr_rna, otari_spearmanr], palette=['darkturquoise', 'darkorange', 'crimson'])
+    ax.set_xticklabels(['AlphaGenome\n(CAGE)', 'AlphaGenome\n(RNA-seq)', 'Otari'], fontsize=14)
+    ax.set_title('Chrom 8 benchmark', fontsize=14.5)
+    ax.set_ylim(0.35, 0.68)
     ax.set_ylabel('Spearman r', fontsize=16)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_linewidth(2)
-    ax.spines['left'].set_linewidth(2)
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    custom_thresholds = {
+        0.001: '***',
+        0.01: '**',
+        0.05: '*',
+        1: 'ns'
+    }
+    star_labels = get_star_labels(corrected_pvals, custom_thresholds)
+    pairs = [(0, 2), (1, 2)] 
+    y_positions = [0.64, 0.66]
+    draw_lines_and_stars(ax, pairs, y_positions, star_labels)
     plt.tight_layout()
     os.makedirs('figures', exist_ok=True)
     plt.savefig('figures/AlphaGenome_chr8_benchmark.png', dpi=900, bbox_inches='tight')
